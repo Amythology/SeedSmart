@@ -4,10 +4,9 @@ from jose import JWTError, jwt
 from passlib.context import CryptContext
 from fastapi import HTTPException, status
 from bson import ObjectId
-
-SECRET_KEY = "your-secret-key-change-this-in-production"
-ALGORITHM = "HS256"
-ACCESS_TOKEN_EXPIRE_MINUTES = 30
+from dotenv import load_dotenv
+import os
+load_dotenv()
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
