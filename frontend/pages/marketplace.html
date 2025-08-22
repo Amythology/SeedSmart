@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Marketplace - SeedSmart</title>
+    <link rel="stylesheet" href="../styles/main.css">
+    <link rel="stylesheet" href="../styles/marketplace.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <header class="header">
+        <nav class="navbar">
+            <div class="nav-brand">
+                <a href="../index.html"><h1>🌱 SeedSmart</h1></a>
+            </div>
+            <div class="nav-links">
+                <a href="../index.html">Home</a>
+                <a href="marketplace.html">Marketplace</a>
+                <div class="auth-buttons">
+                    <a href="login.html" class="btn btn-outline">Login</a>
+                    <a href="register.html" class="btn btn-primary">Sign Up</a>
+                </div>
+            </div>
+            <div class="cart-icon" onclick="toggleCart()">
+                🛒 <span id="cartCount">0</span>
+            </div>
+        </nav>
+    </header>
+
+    <main class="marketplace-main">
+        <!-- Search and Filter Section -->
+        <section class="search-filter-section">
+            <div class="container">
+                <div class="search-bar">
+                    <input type="text" id="searchInput" placeholder="Search for fresh produce..." class="search-input">
+                    <button onclick="searchProducts()" class="btn btn-primary">Search</button>
+                </div>
+                
+                <div class="filters">
+                    <div class="filter-group">
+                        <label>Category:</label>
+                        <select id="categoryFilter" onchange="filterProducts()">
+                            <option value="">All Categories</option>
+                            <option value="vegetables">Vegetables</option>
+                            <option value="fruits">Fruits</option>
+                            <option value="grains">Grains</option>
+                            <option value="dairy">Dairy</option>
+                            <option value="herbs">Herbs & Spices</option>
+                        </select>
+                    </div>
+                    
+                    <div class="filter-group">
+                        <label>Price Range:</label>
+                        <select id="priceFilter" onchange="filterProducts()">
+                            <option value="">All Prices</option>
+                            <option value="0-50">₹0 - ₹50</option>
+                            <option value="50-100">₹50 - ₹100</option>
+                            <option value="100-200">₹100 - ₹200</option>
+                            <option value="200+">₹200+</option>
+                        </select>
+                    </div>
+                    
+                    <div class="filter-group">
+                        <label>Sort By:</label>
+                        <select id="sortFilter" onchange="filterProducts()">
+                            <option value="name">Name</option>
+                            <option value="price-low">Price: Low to High</option>
+                            <option value="price-high">Price: High to Low</option>
+                            <option value="newest">Newest First</option>
+                        </select>
+                    </div>
+                    
+                    <button onclick="clearFilters()" class="btn btn-outline">Clear Filters</button>
+                </div>
+            </div>
+        </section>
+
+        <!-- Products Grid -->
+        <section class="products-section">
+            <div class="container">
+                <div class="section-header">
+                    <h2>Fresh Products</h2>
+                    <div id="productCount" class="product-count"></div>
+                </div>
+                
+                <div id="loadingSpinner" class="loading-spinner hidden">
+                    <div class="spinner"></div>
+                    <p>Loading products...</p>
+                </div>
+                
+                <div id="productsGrid" class="products-grid"></div>
+                
+                <div id="noProducts" class="no-products hidden">
+                    <div class="no-products-icon">📦</div>
+                    <h3>No products found</h3>
+                    <p>Try adjusting your search or filters</p>
+                </div>
+                
+                <!-- Load More Button -->
+                <div class="load-more-container">
+                    <button id="loadMoreBtn" class="btn btn-outline btn-large hidden" onclick="loadMoreProducts()">
+                        Load More Products
+                    </button>
+                </div>
+            </div>
+        </section>
+
+        <!-- Featured Farmers -->
+        <section class="featured-farmers">
+            <div class="container">
+                <h2>Featured Farmers</h2>
+                <div id="featuredFarmers" class="farmers-grid"></div>
+            </div>
+        </section>
+    </main>
+
+    <!-- Shopping Cart Sidebar -->
+    <div id="cartSidebar" class="cart-sidebar">
+        <div class="cart-header">
+            <h3>Shopping Cart</h3>
+            <button class="close-cart" onclick="toggleCart()">&times;</button>
+        </div>
+        
+        <div id="cartItems" class="cart-items"></div>
+        
+        <div class="cart-footer">
+            <div class="cart-total">
+                <strong>Total: ₹<span id="cartTotal">0</span></strong>
+            </div>
+            <button id="checkoutBtn" class="btn btn-primary btn-large" onclick="proceedToCheckout()">
+                Proceed to Checkout
+            </button>
+            <button class="btn btn-outline" onclick="clearCart()">Clear Cart</button>
+        </div>
+    </div>
+
+    <!-- Cart Overlay -->
+    <div id="cartOverlay" class="cart-overlay" onclick="toggleCart()"></div>
+
+    <!-- Product Details Modal -->
+    <div id="productModal" class="modal">
+        <div class="modal-content product-modal-content">
+            <div class="modal-header">
+                <h2 id="modalProductName"></h2>
+                <span class="close" onclick="closeProductModal()">&times;</span>
+            </div>
+            <div class="modal-body">
+                <div class="product-modal-grid">
+                    <div class="product-modal-image">
+                        <div id="modalProductIcon" class="modal-product-icon">🌾</div>
+                    </div>
+                    <div class="product-modal-info">
+                        <div class="product-modal-price" id="modalProductPrice"></div>
+                        <div class="product-modal-meta">
+                            <p><strong>Farmer:</strong> <span id="modalFarmerName"></span></p>
+                            <p><strong>Category:</strong> <span id="modalProductCategory"></span></p>
+                            <p><strong>Available:</strong> <span id="modalProductQuantity"></span></p>
+                        </div>
+                        <div class="product-modal-description">
+                            <h4>Description</h4>
+                            <p id="modalProductDescription"></p>
+                        </div>
+                        <div class="add-to-cart-section">
+                            <div class="quantity-selector">
+                                <button onclick="decreaseQuantity()" class="qty-btn">-</button>
+                                <input type="number" id="modalQuantity" value="1" min="1" class="qty-input">
+                                <button onclick="increaseQuantity()" class="qty-btn">+</button>
+                            </div>
+                            <button id="addToCartBtn" class="btn btn-primary btn-large" onclick="addToCartFromModal()">
+                                Add to Cart
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Checkout Modal -->
+    <div id="checkoutModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Checkout</h2>
+                <span class="close" onclick="closeCheckoutModal()">&times;</span>
+            </div>
+            <div class="modal-body">
+                <form id="checkoutForm">
+                    <div class="checkout-section">
+                        <h3>Delivery Information</h3>
+                        <div class="form-group">
+                            <label for="deliveryAddress">Delivery Address</label>
+                            <textarea id="deliveryAddress" name="address" class="form-control" rows="3" required
+                                placeholder="Enter your complete delivery address"></textarea>
+                        </div>
+                        <div class="form-group">
+                            <label for="phoneNumber">Phone Number</label>
+                            <input type="tel" id="phoneNumber" name="phone" class="form-control" required
+                                placeholder="+91 9876543210">
+                        </div>
+                    </div>
+                    
+                    <div class="checkout-section">
+                        <h3>Payment Method</h3>
+                        <div class="payment-options">
+                            <label class="radio-option">
+                                <input type="radio" name="payment" value="cash_on_delivery" checked>
+                                <span>Cash on Delivery</span>
+                            </label>
+                            <label class="radio-option">
+                                <input type="radio" name="payment" value="online_payment">
+                                <span>Online Payment (Coming Soon)</span>
+                            </label>
+                        </div>
+                    </div>
+                    
+                    <div class="checkout-section">
+                        <h3>Order Summary</h3>
+                        <div id="checkoutItems" class="checkout-items"></div>
+                        <div class="checkout-total">
+                            <div class="total-line">
+                                <span>Subtotal:</span>
+                                <span>₹<span id="checkoutSubtotal">0</span></span>
+                            </div>
+                            <div class="total-line">
+                                <span>Delivery:</span>
+                                <span>₹<span id="deliveryFee">50</span></span>
+                            </div>
+                            <div class="total-line total-final">
+                                <span><strong>Total:</strong></span>
+                                <span><strong>₹<span id="checkoutTotal">0</span></strong></span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <button type="submit" class="btn btn-primary btn-large">Place Order</button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script src="../scripts/api.js"></script>
+    <script src="../scripts/auth.js"></script>
+    <script src="../scripts/marketplace.js"></script>
+</body>
+</html>

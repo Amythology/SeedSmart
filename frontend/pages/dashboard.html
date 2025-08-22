@@ -1,0 +1,413 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard - SeedSmart</title>
+    <link rel="stylesheet" href="../styles/main.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="dashboard">
+        <aside class="sidebar" id="sidebar">
+            <div class="nav-brand mb-3">
+                <h2>🌱 SeedSmart</h2>
+            </div>
+            <ul class="sidebar-nav">
+                <li><a href="#" onclick="showSection('overview')" class="active">Overview</a></li>
+                <li id="productsLink"><a href="#" onclick="showSection('products')">My Products</a></li>
+                <li id="ordersLink"><a href="#" onclick="showSection('orders')">Orders</a></li>
+                <li id="shopLink"><a href="#" onclick="showSection('shop')">Shop</a></li>
+                <li><a href="#" onclick="auth.logout()">Logout</a></li>
+            </ul>
+        </aside>
+
+        <main class="main-content">
+            <!-- Overview Section -->
+            <div id="overview" class="section">
+                <div class="flex items-center justify-between mb-3">
+                    <h1>Dashboard</h1>
+                    <div id="userInfo"></div>
+                </div>
+                
+                <div class="grid grid-3 mb-3">
+                    <div class="card">
+                        <h3>Welcome!</h3>
+                        <p>Manage your farming business with ease.</p>
+                    </div>
+                    <div class="card" id="statsCard1">
+                        <h3>0</h3>
+                        <p>Products</p>
+                    </div>
+                    <div class="card" id="statsCard2">
+                        <h3>0</h3>
+                        <p>Orders</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Products Section (Farmers only) -->
+            <div id="products" class="section hidden">
+                <div class="flex items-center justify-between mb-3">
+                    <h1>My Products</h1>
+                    <button class="btn btn-primary" onclick="showModal('productModal')">Add Product</button>
+                </div>
+                <div id="productsList" class="grid grid-3"></div>
+            </div>
+
+            <!-- Shop Section (Buyers only) -->
+            <div id="shop" class="section hidden">
+                <div class="flex items-center justify-between mb-3">
+                    <h1>Shop Products</h1>
+                    <div class="flex gap-2">
+                        <select id="categoryFilter" class="form-select">
+                            <option value="">All Categories</option>
+                            <option value="vegetables">Vegetables</option>
+                            <option value="fruits">Fruits</option>
+                            <option value="grains">Grains</option>
+                            <option value="dairy">Dairy</option>
+                        </select>
+                        <button class="btn btn-outline" onclick="loadShopProducts()">Filter</button>
+                    </div>
+                </div>
+                <div id="shopProductsList" class="grid grid-3"></div>
+            </div>
+
+            <!-- Orders Section -->
+            <div id="orders" class="section hidden">
+                <h1>Orders</h1>
+                <div id="ordersList"></div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Product Modal -->
+    <div id="productModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Add Product</h2>
+                <span class="close" onclick="hideModal('productModal')">&times;</span>
+            </div>
+            <form id="productForm">
+                <div class="form-group">
+                    <label for="productName">Product Name</label>
+                    <input type="text" id="productName" name="name" class="form-control" required>
+                </div>
+                <div class="form-group">
+                    <label for="productDescription">Description</label>
+                    <textarea id="productDescription" name="description" class="form-control" required></textarea>
+                </div>
+                <div class="form-group">
+                    <label for="productCategory">Category</label>
+                    <select id="productCategory" name="category" class="form-select" required>
+                        <option value="vegetables">Vegetables</option>
+                        <option value="fruits">Fruits</option>
+                        <option value="grains">Grains</option>
+                        <option value="dairy">Dairy</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="productPrice">Price per unit</label>
+                    <input type="number" id="productPrice" name="price" class="form-control" step="0.01" required>
+                </div>
+                <div class="form-group">
+                    <label for="productQuantity">Quantity</label>
+                    <input type="number" id="productQuantity" name="quantity" class="form-control" required>
+                </div>
+                <div class="form-group">
+                    <label for="productUnit">Unit</label>
+                    <select id="productUnit" name="unit" class="form-select" required>
+                        <option value="kg">Kilogram</option>
+                        <option value="pieces">Pieces</option>
+                        <option value="liters">Liters</option>
+                        <option value="dozen">Dozen</option>
+                    </select>
+                </div>
+                <button type="submit" class="btn btn-primary">Add Product</button>
+            </form>
+        </div>
+    </div>
+
+    <script src="../scripts/api.js"></script>
+    <script src="../scripts/auth.js"></script>
+    <script>
+        let currentSection = 'overview';
+        let cart = [];
+
+        document.addEventListener('DOMContentLoaded', async function() {
+            if (!auth.requireAuth()) return;
+            
+            setupDashboard();
+            await loadDashboardData();
+        });
+
+        function setupDashboard() {
+            const userType = auth.getUserType();
+            const userInfo = document.getElementById('userInfo');
+            userInfo.textContent = `Logged in as: ${userType}`;
+
+            // Show/hide navigation based on user type
+            if (userType === 'farmer') {
+                document.getElementById('shopLink').style.display = 'none';
+            } else {
+                document.getElementById('productsLink').style.display = 'none';
+            }
+
+            // Setup product form
+            document.getElementById('productForm').addEventListener('submit', handleProductSubmit);
+        }
+
+        function showSection(sectionName) {
+            // Hide all sections
+            document.querySelectorAll('.section').forEach(section => {
+                section.classList.add('hidden');
+            });
+
+            // Update navigation
+            document.querySelectorAll('.sidebar-nav a').forEach(link => {
+                link.classList.remove('active');
+            });
+
+            // Show selected section
+            document.getElementById(sectionName).classList.remove('hidden');
+            event.target.classList.add('active');
+            currentSection = sectionName;
+
+            // Load section data
+            loadSectionData(sectionName);
+        }
+
+        async function loadSectionData(section) {
+            switch(section) {
+                case 'products':
+                    await loadMyProducts();
+                    break;
+                case 'shop':
+                    await loadShopProducts();
+                    break;
+                case 'orders':
+                    await loadOrders();
+                    break;
+            }
+        }
+
+        async function loadDashboardData() {
+            try {
+                const userType = auth.getUserType();
+                
+                if (userType === 'farmer') {
+                    const products = await api.getMyProducts();
+                    document.querySelector('#statsCard1 h3').textContent = products.length;
+                    document.querySelector('#statsCard1 p').textContent = 'Products';
+                }
+                
+                const orders = await api.getMyOrders();
+                document.querySelector('#statsCard2 h3').textContent = orders.length;
+                document.querySelector('#statsCard2 p').textContent = 'Orders';
+                
+            } catch (error) {
+                console.error('Error loading dashboard:', error);
+            }
+        }
+
+        async function loadMyProducts() {
+            try {
+                const products = await api.getMyProducts();
+                const container = document.getElementById('productsList');
+                
+                if (products.length === 0) {
+                    container.innerHTML = '<p>No products found. Add your first product!</p>';
+                    return;
+                }
+                
+                container.innerHTML = products.map(product => `
+                    <div class="card product-card">
+                        <div class="product-image">🌾</div>
+                        <div class="product-info">
+                            <h3>${product.name}</h3>
+                            <p>${product.description}</p>
+                            <div class="product-price">₹${product.price}/${product.unit}</div>
+                            <div class="product-meta">
+                                <span>Stock: ${product.quantity}</span>
+                                <span>${product.category}</span>
+                            </div>
+                            <div class="flex gap-2">
+                                <button class="btn btn-outline" onclick="editProduct('${product.id}')">Edit</button>
+                                <button class="btn btn-danger" onclick="deleteProduct('${product.id}')">Delete</button>
+                            </div>
+                        </div>
+                    </div>
+                `).join('');
+                
+            } catch (error) {
+                console.error('Error loading products:', error);
+            }
+        }
+
+        async function loadShopProducts() {
+            try {
+                const category = document.getElementById('categoryFilter')?.value || '';
+                const filters = category ? { category } : {};
+                
+                const products = await api.getProducts(filters);
+                const container = document.getElementById('shopProductsList');
+                
+                if (products.length === 0) {
+                    container.innerHTML = '<p>No products available.</p>';
+                    return;
+                }
+                
+                container.innerHTML = products.map(product => `
+                    <div class="card product-card">
+                        <div class="product-image">🌾</div>
+                        <div class="product-info">
+                            <h3>${product.name}</h3>
+                            <p>${product.description}</p>
+                            <div class="product-price">₹${product.price}/${product.unit}</div>
+                            <div class="product-meta">
+                                <span>By: ${product.farmer_name}</span>
+                                <span>Stock: ${product.quantity}</span>
+                            </div>
+                            <div class="flex gap-2">
+                                <input type="number" id="qty-${product.id}" min="1" max="${product.quantity}" value="1" style="width: 80px;" class="form-control">
+                                <button class="btn btn-primary" onclick="addToCart('${product.id}', '${product.name}', ${product.price}, '${product.unit}')">Add to Cart</button>
+                            </div>
+                        </div>
+                    </div>
+                `).join('');
+                
+            } catch (error) {
+                console.error('Error loading shop products:', error);
+            }
+        }
+
+        async function loadOrders() {
+            try {
+                const orders = await api.getMyOrders();
+                const container = document.getElementById('ordersList');
+                
+                if (orders.length === 0) {
+                    container.innerHTML = '<p>No orders found.</p>';
+                    return;
+                }
+                
+                container.innerHTML = orders.map(order => `
+                    <div class="card">
+                        <div class="flex justify-between items-center mb-2">
+                            <h3>Order #${order.id.slice(-8)}</h3>
+                            <span class="btn btn-outline">${order.status}</span>
+                        </div>
+                        <p><strong>Total:</strong> ₹${order.total_amount}</p>
+                        <p><strong>Items:</strong> ${order.items.length}</p>
+                        <p><strong>Date:</strong> ${new Date(order.created_at).toLocaleDateString()}</p>
+                        <p><strong>Address:</strong> ${order.delivery_address}</p>
+                    </div>
+                `).join('');
+                
+            } catch (error) {
+                console.error('Error loading orders:', error);
+            }
+        }
+
+        async function handleProductSubmit(e) {
+            e.preventDefault();
+            
+            const formData = new FormData(e.target);
+            const productData = {
+                name: formData.get('name'),
+                description: formData.get('description'),
+                category: formData.get('category'),
+                price: parseFloat(formData.get('price')),
+                quantity: parseInt(formData.get('quantity')),
+                unit: formData.get('unit')
+            };
+            
+            try {
+                await api.createProduct(productData);
+                hideModal('productModal');
+                e.target.reset();
+                await loadMyProducts();
+                alert('Product added successfully!');
+            } catch (error) {
+                alert('Error adding product: ' + error.message);
+            }
+        }
+
+        async function deleteProduct(productId) {
+            if (confirm('Are you sure you want to delete this product?')) {
+                try {
+                    await api.deleteProduct(productId);
+                    await loadMyProducts();
+                    alert('Product deleted successfully!');
+                } catch (error) {
+                    alert('Error deleting product: ' + error.message);
+                }
+            }
+        }
+
+        function addToCart(productId, productName, unitPrice, unit) {
+            const qtyInput = document.getElementById(`qty-${productId}`);
+            const quantity = parseInt(qtyInput.value);
+            
+            if (quantity <= 0) return;
+            
+            const existingItem = cart.find(item => item.product_id === productId);
+            if (existingItem) {
+                existingItem.quantity += quantity;
+                existingItem.total_price = existingItem.quantity * unitPrice;
+            } else {
+                cart.push({
+                    product_id: productId,
+                    product_name: productName,
+                    quantity: quantity,
+                    unit_price: unitPrice,
+                    total_price: quantity * unitPrice
+                });
+            }
+            
+            alert(`${quantity} ${unit} of ${productName} added to cart!`);
+            updateCartDisplay();
+        }
+
+        function updateCartDisplay() {
+            const cartCount = cart.reduce((sum, item) => sum + item.quantity, 0);
+            // Update cart indicator if exists
+        }
+
+        async function checkout() {
+            if (cart.length === 0) {
+                alert('Cart is empty!');
+                return;
+            }
+            
+            const address = prompt('Enter delivery address:');
+            if (!address) return;
+            
+            try {
+                const orderData = {
+                    items: cart,
+                    delivery_address: address,
+                    payment_method: 'cash_on_delivery'
+                };
+                
+                await api.createOrder(orderData);
+                cart = [];
+                updateCartDisplay();
+                alert('Order placed successfully!');
+                showSection('orders');
+                
+            } catch (error) {
+                alert('Error placing order: ' + error.message);
+            }
+        }
+
+        function showModal(modalId) {
+            document.getElementById(modalId).style.display = 'block';
+        }
+
+        function hideModal(modalId) {
+            document.getElementById(modalId).style.display = 'none';
+        }
+    </script>
+</body>
+</html>
