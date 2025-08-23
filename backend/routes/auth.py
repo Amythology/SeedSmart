@@ -1,11 +1,11 @@
 from fastapi import APIRouter, HTTPException, status, Depends
 from datetime import timedelta
 from models import UserCreate, UserLogin, UserResponse, Token
-from auth import get_password_hash, verify_password, create_access_token, ACCESS_TOKEN_EXPIRE_MINUTES
+from auth import get_password_hash, verify_password, create_access_token
 from database import get_database
 from datetime import datetime
 from bson import ObjectId
-
+import os
 router = APIRouter(prefix="/auth", tags=["Authentication"])
 
 @router.post("/register", response_model=UserResponse)
@@ -60,7 +60,7 @@ async def login_user(user_credentials: UserLogin):
         )
     
     # Create access token
-    access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+    access_token_expires = timedelta(minutes=int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES")))
     access_token = create_access_token(
         data={"sub": str(user["_id"])}, expires_delta=access_token_expires
     )
