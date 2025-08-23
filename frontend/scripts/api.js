@@ -1,6 +1,6 @@
 class ApiClient {
     constructor() {
-        this.baseURL = 'http://localhost:8000';
+        this.baseURL = 'https://seedsmart-px0a.onrender.com';
         this.token = localStorage.getItem('token');
     }
 
