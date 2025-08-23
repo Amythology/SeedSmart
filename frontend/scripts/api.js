@@ -38,8 +38,8 @@ class ApiClient {
     // Auth methods
     async login(username, password) {
         let  formData= JSON.stringify({
-  "username":"tester01",
-  "password":"123456789"
+  "username":username,
+  "password":password
 });
         const response = await fetch(`${this.baseURL}/auth/login`, {
             method: 'POST',
