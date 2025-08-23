@@ -2,7 +2,9 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from database import connect_to_mongo, close_mongo_connection
 from routes import auth, products, orders
-
+from dotenv import load_dotenv
+import os
+load_dotenv()
 app = FastAPI(title="Farmers Market API", version="1.0.0")
 
 # CORS middleware
